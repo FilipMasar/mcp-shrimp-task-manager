@@ -1,17 +1,10 @@
 /**
- * researchMode prompt 生成器
- * 負責將模板和參數組合成最終的 prompt
+ * researchMode prompt generator
+ * Responsible for combining templates and parameters into the final prompt
  */
 
-import {
-  loadPrompt,
-  generatePrompt,
-  loadPromptFromTemplate,
-} from "../loader.js";
+import { loadPrompt, generatePrompt, loadPromptFromTemplate } from "../loader.js";
 
-/**
- * researchMode prompt 參數介面
- */
 export interface ResearchModePromptParams {
   topic: string;
   previousState: string;
@@ -21,14 +14,14 @@ export interface ResearchModePromptParams {
 }
 
 /**
- * 獲取 researchMode 的完整 prompt
- * @param params prompt 參數
- * @returns 生成的 prompt
+ * Get the complete prompt for researchMode
+ * @param params prompt parameters
+ * @returns generated prompt
  */
 export function getResearchModePrompt(
   params: ResearchModePromptParams
 ): string {
-  // 處理之前的研究狀態
+  // Handle previous research state
   let previousStateContent = "";
   if (params.previousState && params.previousState.trim() !== "") {
     const previousStateTemplate = loadPromptFromTemplate(
@@ -38,10 +31,10 @@ export function getResearchModePrompt(
       previousState: params.previousState,
     });
   } else {
-    previousStateContent = "這是第一次進行此主題的研究，沒有之前的研究狀態。";
+    previousStateContent = "This is the first time researching this topic, there is no previous research state.";
   }
 
-  // 載入主要模板
+  // Load main template
   const indexTemplate = loadPromptFromTemplate("researchMode/index.md");
   let prompt = generatePrompt(indexTemplate, {
     topic: params.topic,
@@ -52,6 +45,6 @@ export function getResearchModePrompt(
     time: new Date().toLocaleString(),
   });
 
-  // 載入可能的自定義 prompt
+  // Load possible custom prompt
   return loadPrompt(prompt, "RESEARCH_MODE");
 }
