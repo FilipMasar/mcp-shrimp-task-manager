@@ -1,9 +1,9 @@
 // Task status enum: defines the current stage of a task in the workflow
 export enum TaskStatus {
-  PENDING = "PENDING", // Task has been created but not yet started
-  IN_PROGRESS = "IN_PROGRESS", // Task is currently in progress
-  COMPLETED = "COMPLETED", // Task has been successfully completed and verified
-  BLOCKED = "BLOCKED", // Task is temporarily blocked due to dependencies
+  PENDING = "pending", // Task has been created but not yet started
+  IN_PROGRESS = "in_progress", // Task is currently in progress
+  COMPLETED = "completed", // Task has been successfully completed and verified
+  BLOCKED = "blocked", // Task is temporarily blocked due to dependencies
 }
 
 // Task dependency: defines prerequisite relationships between tasks

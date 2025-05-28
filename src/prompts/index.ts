@@ -18,3 +18,4 @@ export { getDeleteTaskPrompt } from "./generators/deleteTask.js";
 export { getClearAllTasksPrompt } from "./generators/clearAllTasks.js";
 export { getUpdateTaskContentPrompt } from "./generators/updateTaskContent.js";
 export { getProcessThoughtPrompt, ProcessThoughtPromptParams } from "./generators/processThought.js";
+export { getResearchModePrompt } from "./generators/researchMode.js";

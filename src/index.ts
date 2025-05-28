@@ -43,11 +43,12 @@ import {
   processThoughtSchema,
   initProjectRules,
   initProjectRulesSchema,
+  researchMode,
+  researchModeSchema,
 } from "./tools/index.js";
 
 async function main() {
   try {
-    console.log("Starting Shrimp Task Manager service...");
     const ENABLE_GUI = process.env.ENABLE_GUI === "true";
 
     if (ENABLE_GUI) {
@@ -142,9 +143,19 @@ async function main() {
         } catch (watchError) {}
       });
 
-      // Write URL to ebGUI.md
+      // 將 URL 寫入 WebGUI.md
       try {
-        const websiteUrl = `[Task Manager UI](http://localhost:${port})`;
+        // 讀取 TEMPLATES_USE 環境變數並轉換為語言代碼
+        const templatesUse = process.env.TEMPLATES_USE || "en";
+        const getLanguageFromTemplate = (template: string): string => {
+          if (template === "zh") return "zh-TW";
+          if (template === "en") return "en";
+          // 自訂範本預設使用英文
+          return "en";
+        };
+        const language = getLanguageFromTemplate(templatesUse);
+
+        const websiteUrl = `[Task Manager UI](http://localhost:${port}?lang=${language})`;
         const websiteFilePath = path.join(DATA_DIR, "WebGUI.md");
         await fsPromises.writeFile(websiteFilePath, websiteUrl, "utf-8");
       } catch (error) {}
@@ -270,6 +281,13 @@ async function main() {
             name: "init_project_rules",
             description: loadPromptFromTemplate("toolsDescription/initProjectRules.md"),
             inputSchema: zodToJsonSchema(initProjectRulesSchema),
+          },
+          {
+            name: "research_mode",
+            description: loadPromptFromTemplate(
+              "toolsDescription/researchMode.md"
+            ),
+            inputSchema: zodToJsonSchema(researchModeSchema),
           },
         ],
       };
@@ -417,6 +435,16 @@ async function main() {
               return await processThought(parsedArgs.data);
             case "init_project_rules":
               return await initProjectRules();
+            case "research_mode":
+              parsedArgs = await researchModeSchema.safeParseAsync(
+                request.params.arguments
+              );
+              if (!parsedArgs.success) {
+                throw new Error(
+                  `Invalid arguments for tool ${request.params.name}: ${parsedArgs.error.message}`
+                );
+              }
+              return await researchMode(parsedArgs.data);
             default:
               throw new Error(`Tool ${request.params.name} does not exist`);
           }
@@ -438,8 +466,6 @@ async function main() {
     // Establish connection
     const transport = new StdioServerTransport();
     await server.connect(transport);
-
-    console.log("Shrimp Task Manager service started");
   } catch (error) {
     process.exit(1);
   }
