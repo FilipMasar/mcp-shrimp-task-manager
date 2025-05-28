@@ -26,7 +26,7 @@ export async function getTaskDetail({
         content: [
           {
             type: "text" as const,
-            text: `## Error\n\n找不到ID為 \`${taskId}\` 的任務。請確認任務ID是否正確。`,
+            text: `## Error\n\nTask with ID \`${taskId}\` not found. Please check if the task ID is correct.`,
           },
         ],
         isError: true,
