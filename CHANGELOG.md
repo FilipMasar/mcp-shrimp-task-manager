@@ -2,6 +2,18 @@
 
 # Changelog
 
+## [1.0.20]
+
+### Added
+
+- Added reset button and thumbnail view
+- Enhanced interaction between dependency graph and task list, making the dependency graph respond to filtering and task list selection
+
+### Changed
+
+- Removed initial animation of dependency graph to avoid animation jumps
+- Optimized initial state of dependency graph
+
 ## [1.0.19]
 
 ### Added

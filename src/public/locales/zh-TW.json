@@ -3,6 +3,7 @@
   "status_indicator_online": "在線",
   "dependency_view_title": "依賴關係",
   "dependency_graph_placeholder": "所有任務的依賴關係",
+  "reset_view_btn_title": "重置視圖",
   "task_list_title": "任務列表",
   "search_placeholder": "搜索任務...",
   "sort_option_date_desc": "創建時間 (新-舊)",

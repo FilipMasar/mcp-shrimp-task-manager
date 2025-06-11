@@ -4,7 +4,10 @@ let selectedTaskId = null;
 let searchTerm = "";
 let sortOption = "date-asc";
 let globalAnalysisResult = null; // 新增：儲存全局分析結果
-let svg, g, simulation; // << 修改：定義 D3 相關變量
+let svg, g, simulation;
+let width, height; // << 新增：將寬高定義為全局變量
+let isGraphInitialized = false; // << 新增：追蹤圖表是否已初始化
+let zoom; // << 新增：保存縮放行為對象
 
 // 新增：i18n 全局變量
 let currentLang = "en"; // 預設語言
@@ -25,6 +28,7 @@ const globalAnalysisResultElement = document.getElementById(
   "global-analysis-result"
 ); // 假設 HTML 中有這個元素
 const langSwitcher = document.getElementById("lang-switcher"); // << 新增：獲取切換器元素
+const resetViewBtn = document.getElementById("reset-view-btn"); // << 新增：獲取重置按鈕元素
 
 // 初始化
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,11 +36,17 @@ document.addEventListener("DOMContentLoaded", () => {
   initI18n(); // << 新增：初始化 i18n
   updateCurrentTime();
   setInterval(updateCurrentTime, 1000);
+  updateDimensions(); // << 新增：初始化時更新尺寸
 
   // 事件監聽器
   // statusFilter.addEventListener("change", renderTasks); // 將由 changeLanguage 觸發或在 applyTranslations 後觸發
   if (statusFilter) {
     statusFilter.addEventListener("change", renderTasks);
+  }
+
+  // 新增：重置視圖按鈕事件監聽
+  if (resetViewBtn) {
+    resetViewBtn.addEventListener("click", resetView);
   }
 
   // 新增：搜索和排序事件監聽
@@ -66,6 +76,16 @@ document.addEventListener("DOMContentLoaded", () => {
       changeLanguage(e.target.value)
     );
   }
+
+  // 新增：視窗大小改變時更新尺寸
+  window.addEventListener("resize", () => {
+    updateDimensions();
+    if (svg && simulation) {
+      svg.attr("viewBox", [0, 0, width, height]);
+      simulation.force("center", d3.forceCenter(width / 2, height / 2));
+      simulation.alpha(0.3).restart();
+    }
+  });
 });
 
 // 新增：i18n 核心函數
@@ -470,6 +490,9 @@ function renderTasks() {
     );
   }
 
+  // 儲存篩選後的任務 ID 集合，用於圖形渲染
+  const filteredTaskIds = new Set(filteredTasks.map(task => task.id));
+
   filteredTasks.sort((a, b) => {
     switch (sortOption) {
       case "name-asc":
@@ -486,6 +509,9 @@ function renderTasks() {
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     }
   });
+
+  // 更新圖形的顯示狀態
+  updateGraphVisibility(filteredTaskIds);
 
   // --- 簡單粗暴的替換 (會導致閃爍) ---
   // TODO: 實現 DOM Diffing 或更智慧的更新策略
@@ -539,9 +565,77 @@ function renderTasks() {
   }
 }
 
-// 選擇任務
+// 新增：更新图形可见性的函数
+function updateGraphVisibility(filteredTaskIds) {
+  if (!g) return;
+
+  // 更新节点的样式
+  g.select(".nodes")
+    .selectAll("g.node-item")
+    .style("opacity", d => filteredTaskIds.has(d.id) ? 1 : 0.2)
+    .style("filter", d => filteredTaskIds.has(d.id) ? "none" : "grayscale(80%)");
+
+  // 更新连接的样式
+  g.select(".links")
+    .selectAll("line.link")
+    .style("opacity", d => {
+      const sourceVisible = filteredTaskIds.has(d.source.id || d.source);
+      const targetVisible = filteredTaskIds.has(d.target.id || d.target);
+      return (sourceVisible && targetVisible) ? 0.6 : 0.1;
+    })
+    .style("stroke", d => {
+      const sourceVisible = filteredTaskIds.has(d.source.id || d.source);
+      const targetVisible = filteredTaskIds.has(d.target.id || d.target);
+      return (sourceVisible && targetVisible) ? "#999" : "#ccc";
+    });
+
+  // 更新缩略图中的节点和连接样式
+  const minimapContent = svg.select(".minimap-content");
+  
+  minimapContent.selectAll(".minimap-node")
+    .style("opacity", d => filteredTaskIds.has(d.id) ? 1 : 0.2)
+    .style("filter", d => filteredTaskIds.has(d.id) ? "none" : "grayscale(80%)");
+
+  minimapContent.selectAll(".minimap-link")
+    .style("opacity", d => {
+      const sourceVisible = filteredTaskIds.has(d.source.id || d.source);
+      const targetVisible = filteredTaskIds.has(d.target.id || d.target);
+      return (sourceVisible && targetVisible) ? 0.6 : 0.1;
+    })
+    .style("stroke", d => {
+      const sourceVisible = filteredTaskIds.has(d.source.id || d.source);
+      const targetVisible = filteredTaskIds.has(d.target.id || d.target);
+      return (sourceVisible && targetVisible) ? "#999" : "#ccc";
+    });
+}
+
+// 新增：将节点移动到视图中心的函数
+function centerNode(nodeId) {
+  if (!svg || !g || !simulation) return;
+
+  const node = simulation.nodes().find(n => n.id === nodeId);
+  if (!node) return;
+
+  // 获取当前视图的变换状态
+  const transform = d3.zoomTransform(svg.node());
+  
+  // 计算需要的变换以将节点居中
+  const scale = transform.k; // 保持当前缩放级别
+  const x = width / 2 - node.x * scale;
+  const y = height / 2 - node.y * scale;
+
+  // 使用过渡动画平滑地移动到新位置
+  svg.transition()
+    .duration(750) // 750ms的过渡时间
+    .call(zoom.transform, d3.zoomIdentity
+      .translate(x, y)
+      .scale(scale)
+    );
+}
+
+// 修改选择任务的函数
 function selectTask(taskId) {
-  // 清除舊的選中狀態和高亮
+  // 清除旧的选中状态和高亮
   if (selectedTaskId) {
     const previousElement = document.querySelector(
       `.task-item[data-id="${selectedTaskId}"]`
@@ -551,7 +645,7 @@ function selectTask(taskId) {
     }
   }
 
-  // 如果再次點擊同一個任務，則取消選中
+  // 如果再次点击同一个任务，则取消选中
   if (selectedTaskId === taskId) {
     selectedTaskId = null;
     taskDetailsContent.innerHTML = `<p class="placeholder">${translate(
@@ -563,7 +657,7 @@ function selectTask(taskId) {
 
   selectedTaskId = taskId;
 
-  // 添加新的選中狀態
+  // 添加新的选中状态
   const selectedElement = document.querySelector(
     `.task-item[data-id="${taskId}"]`
   );
@@ -571,7 +665,7 @@ function selectTask(taskId) {
     selectedElement.classList.add("selected");
   }
 
-  // 獲取並顯示任務詳情
+  // 获取并显示任务详情
   const task = tasks.find((t) => t.id === taskId);
 
   if (!task) {
@@ -737,8 +831,59 @@ function selectTask(taskId) {
 
   // --- 原來的 innerHTML 賦值已移除 ---
 
-  // 只調用高亮函數
-  highlightNode(taskId); // 只調用 highlightNode
+  // 高亮节点并将其移动到中心
+  highlightNode(taskId);
+  centerNode(taskId);
+}
+
+// 新增：重置視圖功能
+function resetView() {
+  if (!svg || !simulation) return;
+
+  // 添加重置動畫效果
+  resetViewBtn.classList.add("resetting");
+
+  // 計算視圖中心
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // 重置縮放和平移（使用 transform 過渡）
+  svg.transition()
+    .duration(750)
+    .call(zoom.transform, d3.zoomIdentity);
+
+  // 重置所有節點位置到中心附近
+  simulation.nodes().forEach(node => {
+    node.x = centerX + (Math.random() - 0.5) * 50; // 在中心點附近隨機分佈
+    node.y = centerY + (Math.random() - 0.5) * 50;
+    node.fx = null; // 清除固定位置
+    node.fy = null;
+  });
+
+  // 重置力導向模擬
+  simulation
+    .force("center", d3.forceCenter(centerX, centerY))
+    .alpha(1) // 完全重啟模擬
+    .restart();
+
+  // 750ms 後移除動畫類
+  setTimeout(() => {
+    resetViewBtn.classList.remove("resetting");
+  }, 750);
+}
+
+// 新增：初始化縮放行為
+function initZoom() {
+  zoom = d3.zoom()
+    .scaleExtent([0.1, 4]) // 設置縮放範圍
+    .on("zoom", (event) => {
+      g.attr("transform", event.transform);
+      updateMinimap(); // 在縮放時更新縮略圖
+    });
+  
+  if (svg) {
+    svg.call(zoom);
+  }
 }
 
 // 渲染依賴關係圖 - 修改為全局視圖和 enter/update/exit 模式
@@ -746,22 +891,18 @@ function renderDependencyGraph() {
   if (!dependencyGraphElement || !window.d3) {
     console.warn("D3 or dependency graph element not found.");
     if (dependencyGraphElement) {
-      // 首次或D3丟失時顯示提示，不清空已有的圖
       if (!dependencyGraphElement.querySelector("svg")) {
-        dependencyGraphElement.innerHTML = `<p class="placeholder">${translate(
-          "error_loading_graph_d3" // Use a specific key
-        )}</p>`;
+        dependencyGraphElement.innerHTML = `<p class="placeholder">${translate("error_loading_graph_d3")}</p>`;
       }
     }
     return;
   }
 
+  updateDimensions();
+
   // 如果沒有任務，清空圖表並顯示提示
   if (tasks.length === 0) {
-    dependencyGraphElement.innerHTML = `<p class="placeholder">${translate(
-      "dependency_graph_placeholder_empty"
-    )}</p>`;
-    // 重置 SVG 和 simulation 變數，以便下次正確初始化
+    dependencyGraphElement.innerHTML = `<p class="placeholder">${translate("dependency_graph_placeholder_empty")}</p>`;
     svg = null;
     g = null;
     simulation = null;
@@ -773,10 +914,9 @@ function renderDependencyGraph() {
     id: task.id,
     name: task.name,
     status: task.status,
-    // 保留現有位置以便平滑過渡
     x: simulation?.nodes().find((n) => n.id === task.id)?.x,
     y: simulation?.nodes().find((n) => n.id === task.id)?.y,
-    fx: simulation?.nodes().find((n) => n.id === task.id)?.fx, // 保留固定位置
+    fx: simulation?.nodes().find((n) => n.id === task.id)?.fx,
     fy: simulation?.nodes().find((n) => n.id === task.id)?.fy,
   }));
 
@@ -786,44 +926,56 @@ function renderDependencyGraph() {
       task.dependencies.forEach((dep) => {
         const sourceId = typeof dep === "object" ? dep.taskId : dep;
         const targetId = task.id;
-        if (
-          nodes.some((n) => n.id === sourceId) &&
-          nodes.some((n) => n.id === targetId)
-        ) {
-          // 確保 link 的 source/target 是 ID，以便力導向識別
+        if (nodes.some((n) => n.id === sourceId) && nodes.some((n) => n.id === targetId)) {
           links.push({ source: sourceId, target: targetId });
         } else {
-          console.warn(
-            `Dependency link ignored: Task ${sourceId} or ${targetId} not found in task list.`
-          );
+          console.warn(`Dependency link ignored: Task ${sourceId} or ${targetId} not found in task list.`);
         }
       });
     }
   });
 
-  // 2. D3 繪圖設置與更新
-  const width = dependencyGraphElement.clientWidth;
-  const height = dependencyGraphElement.clientHeight || 400;
-
   if (!svg) {
     // --- 首次渲染 ---
     console.log("First render of dependency graph");
-    dependencyGraphElement.innerHTML = ""; // 清空 placeholder
+    dependencyGraphElement.innerHTML = "";
 
-    svg = d3
-      .select(dependencyGraphElement)
+    svg = d3.select(dependencyGraphElement)
       .append("svg")
       .attr("viewBox", [0, 0, width, height])
       .attr("preserveAspectRatio", "xMidYMid meet");
 
-    g = svg.append("g"); // 主要組，用於縮放和平移
+    // 添加縮略圖背景
+    const minimapSize = Math.min(width, height) * 0.2; // 縮略圖大小為主視圖的20%
+    const minimapMargin = 40;
+    
+    // 創建縮略圖容器
+    const minimap = svg.append("g")
+      .attr("class", "minimap")
+      .attr("transform", `translate(${width - minimapSize - minimapMargin}, ${height - minimapSize - minimapMargin*(height/width)})`);
 
-    // 添加縮放和平移
-    svg.call(
-      d3.zoom().on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      })
-    );
+    // 添加縮略圖背景
+    minimap.append("rect")
+      .attr("width", minimapSize)
+      .attr("height", minimapSize)
+      .attr("fill", "rgba(0, 0, 0, 0.2)")
+      .attr("stroke", "#666")
+      .attr("stroke-width", 1)
+      .attr("rx", 4)
+      .attr("ry", 4);
+
+    // 創建縮略圖內容組
+    minimap.append("g")
+      .attr("class", "minimap-content");
+
+    // 添加視口指示器
+    minimap.append("rect")
+      .attr("class", "minimap-viewport");
+
+    g = svg.append("g");
+
+    // 初始化並添加縮放行為
+    initZoom();
 
     // 添加箭頭定義
     g.append("defs")
@@ -840,32 +992,82 @@ function renderDependencyGraph() {
       .attr("fill", "#999");
 
     // 初始化力導向模擬
-    simulation = d3
-      .forceSimulation() // 初始化時不傳入 nodes
-      .force(
-        "link",
-        d3
-          .forceLink()
-          .id((d) => d.id)
-          .distance(100) // 指定 id 訪問器
-      )
+    simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id((d) => d.id).distance(100))
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide().radius(30))
-      .on("tick", ticked); // 綁定 tick 事件處理函數
+      // 新增：水平分布力，用於優化節點在水平方向的分布，根據節點的入度和出度來決定節點的水平位置，入度為0的節點（起始節點）靠左，出度為0的節點（終止節點）靠右，其他節點則分布在中間位置
+      .force("x", d3.forceX().x(d => {
+        // 計算節點的入度和出度
+        const inDegree = links.filter(l => (l.target.id || l.target) === d.id).length;
+        const outDegree = links.filter(l => (l.source.id || l.source) === d.id).length;
+        
+        if (inDegree === 0) {
+          // 入度為0的節點（起始節點）靠左
+          return width * 0.2;
+        } else if (outDegree === 0) {
+          // 出度為0的節點（終止節點）靠右
+          return width * 0.8;
+        } else {
+          // 其他節點在中間
+          return width * 0.5;
+        }
+      }).strength(0.2))
+      // 新增：基于節點度數的垂直分布力
+      .force("y", d3.forceY().y(height / 2).strength(d => {
+        // 計算節點的總度數（入度+出度）
+        const inDegree = links.filter(l => (l.target.id || l.target) === d.id).length;
+        const outDegree = links.filter(l => (l.source.id || l.source) === d.id).length;
+        const totalDegree = inDegree + outDegree;
+        
+        // 度數越大，力越大（基礎力0.05，每個連接增加0.03，最大0.3）
+        return Math.min(0.05 + totalDegree * 0.03, 0.3);
+      }))
+      .on("tick", ticked);
 
     // 添加用於存放連結和節點的組
     g.append("g").attr("class", "links");
     g.append("g").attr("class", "nodes");
   } else {
-    // --- 更新渲染 ---
+    // --- 更新圖表渲染 ---
     console.log("Updating dependency graph");
-    // 更新 SVG 尺寸和中心力 (如果窗口大小改變)
     svg.attr("viewBox", [0, 0, width, height]);
     simulation.force("center", d3.forceCenter(width / 2, height / 2));
   }
 
-  // 3. 更新連結
+  // --- 預先運算穩定的節點位置 ---
+  // 複製節點和連結以進行穩定化計算
+  const stableNodes = [...nodes];
+  const stableLinks = [...links];
+  
+  // 暫時創建一個模擬器來計算穩定的位置
+  const stableSim = d3
+    .forceSimulation(stableNodes)
+    .force("link", d3.forceLink(stableLinks).id(d => d.id).distance(100))
+    .force("charge", d3.forceManyBody().strength(-300))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide().radius(30));
+  
+  // 預熱模擬獲得穩定位置
+  for (let i = 0; i < 10; i++) {
+    stableSim.tick();
+  }
+  
+  // 將穩定位置複製回原始節點
+  stableNodes.forEach((stableNode) => {
+    const originalNode = nodes.find(n => n.id === stableNode.id);
+    if (originalNode) {
+      originalNode.x = stableNode.x;
+      originalNode.y = stableNode.y;
+    }
+  });
+  
+  // 停止臨時模擬器
+  stableSim.stop();
+  // --- 預先運算結束 ---
+
+  // 3. 更新連結 (無動畫)
   const linkSelection = g
     .select(".links") // 選擇放置連結的 g 元素
     .selectAll("line.link")
@@ -874,62 +1076,43 @@ function renderDependencyGraph() {
       (d) => `${d.source.id || d.source}-${d.target.id || d.target}`
     ); // Key function 基於 source/target ID
 
-  // Exit - 移除舊連結
-  linkSelection
-    .exit()
-    .transition("exit")
-    .duration(300)
-    .attr("stroke-opacity", 0)
-    .remove();
+  // Exit - 直接移除舊連結
+  linkSelection.exit().remove();
 
-  // Enter - 添加新連結
+  // Enter - 添加新連結 (無動畫)
   const linkEnter = linkSelection
     .enter()
     .append("line")
     .attr("class", "link")
     .attr("stroke", "#999")
     .attr("marker-end", "url(#arrowhead)")
-    .attr("stroke-opacity", 0); // 初始透明
-
-  // Update + Enter - 更新所有連結的屬性 (合併 enter 和 update 選擇集)
-  const linkUpdate = linkSelection.merge(linkEnter);
-
-  linkUpdate
-    .transition("update")
-    .duration(500)
     .attr("stroke-opacity", 0.6)
     .attr("stroke-width", 1.5);
 
-  // 4. 更新節點
+  // 立即設置連結位置
+  linkEnter
+    .attr("x1", d => d.source.x || 0)
+    .attr("y1", d => d.source.y || 0)
+    .attr("x2", d => d.target.x || 0)
+    .attr("y2", d => d.target.y || 0);
+
+  // 4. 更新節點 (無動畫)
   const nodeSelection = g
     .select(".nodes") // 選擇放置節點的 g 元素
     .selectAll("g.node-item")
     .data(nodes, (d) => d.id); // 使用 ID 作為 key
 
-  // Exit - 移除舊節點
-  nodeSelection
-    .exit()
-    .transition("exit")
-    .duration(300)
-    .attr("transform", (d) => `translate(${d.x || 0}, ${d.y || 0}) scale(0)`) // 從當前位置縮放消失
-    .attr("opacity", 0)
-    .remove();
+  // Exit - 直接移除舊節點
+  nodeSelection.exit().remove();
 
-  // Enter - 添加新節點組
+  // Enter - 添加新節點組 (無動畫，直接在最終位置創建)
   const nodeEnter = nodeSelection
     .enter()
     .append("g")
     .attr("class", (d) => `node-item status-${getStatusClass(d.status)}`) // 使用輔助函數設置 class
     .attr("data-id", (d) => d.id)
-    // 初始位置：從模擬計算的位置（如果存在）或隨機位置出現，初始縮放為0
-    .attr(
-      "transform",
-      (d) =>
-        `translate(${d.x || Math.random() * width}, ${
-          d.y || Math.random() * height
-        }) scale(0)`
-    )
-    .attr("opacity", 0)
+    // 直接使用預計算的位置，無需縮放或透明度過渡
+    .attr("transform", (d) => `translate(${d.x || 0}, ${d.y || 0})`)
     .call(drag(simulation)); // 添加拖拽
 
   // 添加圓形到 Enter 選擇集
@@ -937,8 +1120,8 @@ function renderDependencyGraph() {
     .append("circle")
     .attr("r", 10)
     .attr("stroke", "#fff")
-    .attr("stroke-width", 1.5);
-  // 顏色將在 merge 後通過 update 過渡設置
+    .attr("stroke-width", 1.5)
+    .attr("fill", getNodeColor); // 直接設置顏色
 
   // 添加文字到 Enter 選擇集
   nodeEnter
@@ -960,28 +1143,14 @@ function renderDependencyGraph() {
     event.stopPropagation();
   });
 
-  // Update + Enter - 合併並更新所有節點
-  const nodeUpdate = nodeSelection.merge(nodeEnter);
+  // Update - 立即更新現有節點 (無動畫)
+  nodeSelection
+    .attr("transform", (d) => `translate(${d.x || 0}, ${d.y || 0})`)
+    .attr("class", (d) => `node-item status-${getStatusClass(d.status)}`);
 
-  // 過渡到最終位置和狀態
-  nodeUpdate
-    .transition("update")
-    .duration(500)
-    .attr("transform", (d) => `translate(${d.x || 0}, ${d.y || 0}) scale(1)`) // 移動到模擬位置並恢復大小
-    .attr("opacity", 1);
-
-  // 更新節點顏色 (單獨過渡)
-  nodeUpdate
+  nodeSelection
     .select("circle")
-    .transition("color")
-    .duration(500)
-    .attr("fill", getNodeColor); // 使用已有的 getNodeColor 函數
-
-  // 更新節點狀態 Class (即時更新，無需過渡)
-  nodeUpdate.attr(
-    "class",
-    (d) => `node-item status-${getStatusClass(d.status)}`
-  );
+    .attr("fill", getNodeColor);
 
   // << 新增：重新定義 drag 函數 >>
   function drag(simulation) {
@@ -1012,10 +1181,24 @@ function renderDependencyGraph() {
   }
   // << drag 函數定義結束 >>
 
-  // 5. 更新力導向模擬
-  simulation.nodes(nodes); // 在處理完 enter/exit 後更新模擬節點
+  // 5. 更新力導向模擬，但不啟動
+  simulation.nodes(nodes); // 更新模擬節點
   simulation.force("link").links(links); // 更新模擬連結
-  simulation.alpha(0.3).restart(); // 重新激活模擬
+  
+  // 更新水平分布力的目標位置
+  simulation.force("x").x(d => {
+    const inDegree = links.filter(l => (l.target.id || l.target) === d.id).length;
+    const outDegree = links.filter(l => (l.source.id || l.source) === d.id).length;
+    
+    if (inDegree === 0) {
+      return width * 0.2;
+    } else if (outDegree === 0) {
+      return width * 0.8;
+    } else {
+      return width * 0.5;
+    }
+  });
+  // 注意：移除了 restart() 調用，防止刷新時的動畫跳變
 }
 
 // Tick 函數: 更新節點和連結位置
@@ -1035,6 +1218,9 @@ function ticked() {
     .selectAll("g.node-item")
     // << 修改：添加座標後備值 >>
     .attr("transform", (d) => `translate(${d.x || 0}, ${d.y || 0})`);
+
+  // 更新縮略圖
+  updateMinimap();
 }
 
 // 函數：根據節點數據返回顏色 (示例)
@@ -1189,6 +1375,91 @@ function highlightNode(taskId, status = null) {
 // 新增：輔助函數獲取狀態 class (應放在 ticked 函數之後，getNodeColor 之前或之後均可)
 function getStatusClass(status) {
   return status ? status.replace(/_/g, "-") : "unknown"; // 替換所有下劃線
+}
+
+// 新增：更新寬高的函數
+function updateDimensions() {
+  if (dependencyGraphElement) {
+    width = dependencyGraphElement.clientWidth;
+    height = dependencyGraphElement.clientHeight || 400;
+  }
+}
+
+// 添加縮略圖更新函數
+function updateMinimap() {
+  if (!svg || !simulation) return;
+
+  const minimapSize = Math.min(width, height) * 0.2;
+  const nodes = simulation.nodes();
+  const links = simulation.force("link").links();
+
+  // 計算當前圖的邊界（添加padding）
+  const padding = 20; // 添加內邊距
+  const xExtent = d3.extent(nodes, d => d.x);
+  const yExtent = d3.extent(nodes, d => d.y);
+  const graphWidth = (xExtent[1] - xExtent[0]) || width;
+  const graphHeight = (yExtent[1] - yExtent[0]) || height;
+
+  // 計算縮放比例，確保考慮padding
+  const scale = Math.min(
+    minimapSize / (graphWidth + padding * 2),
+    minimapSize / (graphHeight + padding * 2)
+  ) * 0.9; // 0.9作為安全係數
+
+  // 創建縮放函數，加入padding
+  const minimapX = d3.scaleLinear()
+    .domain([xExtent[0] - padding, xExtent[1] + padding])
+    .range([0, minimapSize]);
+  const minimapY = d3.scaleLinear()
+    .domain([yExtent[0] - padding, yExtent[1] + padding])
+    .range([0, minimapSize]);
+
+  // 更新縮略圖中的連接
+  const minimapContent = svg.select(".minimap-content");
+  const minimapLinks = minimapContent.selectAll(".minimap-link")
+    .data(links);
+
+  minimapLinks.enter()
+    .append("line")
+    .attr("class", "minimap-link")
+    .merge(minimapLinks)
+    .attr("x1", d => minimapX(d.source.x))
+    .attr("y1", d => minimapY(d.source.y))
+    .attr("x2", d => minimapX(d.target.x))
+    .attr("y2", d => minimapY(d.target.y))
+    .attr("stroke", "#999")
+    .attr("stroke-width", 0.5)
+    .attr("stroke-opacity", 0.6);
+
+  minimapLinks.exit().remove();
+
+  // 更新縮略圖中的節點
+  const minimapNodes = minimapContent.selectAll(".minimap-node")
+    .data(nodes);
+
+  minimapNodes.enter()
+    .append("circle")
+    .attr("class", "minimap-node")
+    .attr("r", 2)
+    .merge(minimapNodes)
+    .attr("cx", d => minimapX(d.x))
+    .attr("cy", d => minimapY(d.y))
+    .attr("fill", getNodeColor);
+
+  minimapNodes.exit().remove();
+
+  // 更新視口指示器
+  const transform = d3.zoomTransform(svg.node());
+  const viewportWidth = width / transform.k;
+  const viewportHeight = height / transform.k;
+  const viewportX = -transform.x / transform.k;
+  const viewportY = -transform.y / transform.k;
+
+  svg.select(".minimap-viewport")
+    .attr("x", minimapX(viewportX))
+    .attr("y", minimapY(viewportY))
+    .attr("width", minimapX(viewportX + viewportWidth) - minimapX(viewportX))
+    .attr("height", minimapY(viewportY + viewportHeight) - minimapY(viewportY));
 }
 
 // 函數：啟用節點拖拽 (保持不變)

@@ -3,6 +3,7 @@
   "status_indicator_online": "ONLINE",
   "dependency_view_title": "Dependency View",
   "dependency_graph_placeholder": "Dependency relationship for all tasks",
+  "reset_view_btn_title": "Reset View",
   "task_list_title": "Task List",
   "search_placeholder": "Search tasks...",
   "sort_option_date_desc": "Creation Time (New-Old)",
