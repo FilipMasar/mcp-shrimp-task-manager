@@ -8,6 +8,7 @@ import {
 } from "../../models/taskModel.js";
 import { TaskStatus, Task } from "../../types/index.js";
 import { getExecuteTaskPrompt } from "../../prompts/index.js";
+import { loadTaskRelatedFiles } from "../../utils/fileLoader.js";
 
 // Execute task tool
 export const executeTaskSchema = z.object({
@@ -111,7 +112,7 @@ export async function executeTask({
     let relatedFilesSummary = "";
     if (task.relatedFiles && task.relatedFiles.length > 0) {
       try {
-        const relatedFilesResult = await  (
+        const relatedFilesResult = await loadTaskRelatedFiles(
           task.relatedFiles
         );
         relatedFilesSummary =
