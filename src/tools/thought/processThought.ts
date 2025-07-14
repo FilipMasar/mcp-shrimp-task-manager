@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { getProcessThoughtPrompt, ProcessThoughtPromptParams } from "../../prompts/index.js";
+import {
+  getProcessThoughtPrompt,
+  ProcessThoughtPromptParams,
+} from "../../prompts/index.js";
 
 /**
  * Parameter structure for processThought tool
