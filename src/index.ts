@@ -54,6 +54,7 @@ async function main() {
     let webServerInstance: Awaited<ReturnType<typeof createWebServer>> | null =
       null;
 
+    // Create MCP server
     const server = new Server(
       {
         name: "Shrimp Task Manager",
@@ -67,10 +68,10 @@ async function main() {
       }
     );
 
-    // 設置全局 server 實例
+    // Set global server instance
     setGlobalServer(server);
 
-    // 監聽 initialized 通知來啟動 web 服務器
+    // Listen to initialized notification to start web server
     if (ENABLE_GUI) {
       server.setNotificationHandler(InitializedNotificationSchema, async () => {
         try {
