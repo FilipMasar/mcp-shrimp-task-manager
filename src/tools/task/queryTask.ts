@@ -44,7 +44,7 @@ export async function queryTask({
     const results = await searchTasksWithCommand(query, isId, page, pageSize);
 
     // Use prompt generator to get the final prompt
-    const prompt = getQueryTaskPrompt({
+    const prompt = await getQueryTaskPrompt({
       query,
       isId,
       tasks: results.tasks,

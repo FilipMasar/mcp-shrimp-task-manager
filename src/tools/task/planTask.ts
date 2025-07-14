@@ -3,6 +3,8 @@ import path from "path";
 import { getAllTasks } from "../../models/taskModel.js";
 import { TaskStatus, Task } from "../../types/index.js";
 import { getPlanTaskPrompt } from "../../prompts/index.js";
+import { getMemoryDir } from "../../utils/paths.js";
+import { fileURLToPath } from "url";
 
 // Start planning tool
 export const planTaskSchema = z.object({
@@ -29,9 +31,10 @@ export async function planTask({
   existingTasksReference = false,
 }: z.infer<typeof planTaskSchema>) {
   // Get base directory path
-  const DATA_DIR = process.env.DATA_DIR
-  if (!DATA_DIR) throw new Error("DATA_DIR is not set");
-  const MEMORY_DIR = path.join(DATA_DIR, "memory");
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const PROJECT_ROOT = path.resolve(__dirname, "../../..");
+  const MEMORY_DIR = await getMemoryDir();
 
   // Prepare required parameters
   let completedTasks: Task[] = [];
@@ -53,7 +56,7 @@ export async function planTask({
   }
 
   // Use prompt generator to get the final prompt
-  const prompt = getPlanTaskPrompt({
+  const prompt = await getPlanTaskPrompt({
     description,
     requirements,
     existingTasksReference,

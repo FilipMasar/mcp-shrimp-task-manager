@@ -69,7 +69,7 @@ export async function verifyTask({
   }
 
   // Use prompt generator to get the final prompt
-  const prompt = getVerifyTaskPrompt({ task, score, summary });
+  const prompt = await getVerifyTaskPrompt({ task, score, summary });
 
   return {
     content: [

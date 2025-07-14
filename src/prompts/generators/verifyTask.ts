@@ -37,10 +37,12 @@ function extractSummary(
  * @param params prompt parameters
  * @returns Generated prompt
  */
-export function getVerifyTaskPrompt(params: VerifyTaskPromptParams): string {
+export async function getVerifyTaskPrompt(
+  params: VerifyTaskPromptParams
+): Promise<string> {
   const { task, score, summary } = params;
   if (score < 80) {
-    const noPassTemplate = loadPromptFromTemplate("verifyTask/noPass.md");
+    const noPassTemplate = await loadPromptFromTemplate("verifyTask/noPass.md");
     const prompt = generatePrompt(noPassTemplate, {
       name: task.name,
       id: task.id,
@@ -48,7 +50,7 @@ export function getVerifyTaskPrompt(params: VerifyTaskPromptParams): string {
     });
     return prompt;
   }
-  const indexTemplate = loadPromptFromTemplate("verifyTask/index.md");
+  const indexTemplate = await loadPromptFromTemplate("verifyTask/index.md");
   const prompt = generatePrompt(indexTemplate, {
     name: task.name,
     id: task.id,

@@ -16,24 +16,21 @@ export interface ProcessThoughtPromptParams {
   assumptions_challenged: string[];
 }
 
-/**
- * Get the complete prompt for processThought
- * @param param prompt parameters
- * @returns generated prompt
- */
-export function getProcessThoughtPrompt(
+export async function getProcessThoughtPrompt(
   param: ProcessThoughtPromptParams
-): string {
+): Promise<string> {
   let nextThoughtNeeded = "";
   if (param.nextThoughtNeeded) {
-    nextThoughtNeeded = loadPromptFromTemplate("processThought/moreThought.md");
+    nextThoughtNeeded = await loadPromptFromTemplate(
+      "processThought/moreThought.md"
+    );
   } else {
-    nextThoughtNeeded = loadPromptFromTemplate(
+    nextThoughtNeeded = await loadPromptFromTemplate(
       "processThought/complatedThought.md"
     );
   }
 
-  const indexTemplate = loadPromptFromTemplate("processThought/index.md");
+  const indexTemplate = await loadPromptFromTemplate("processThought/index.md");
 
   const prompt = generatePrompt(indexTemplate, {
     thought: param.thought,

@@ -42,7 +42,7 @@ Shrimp Task Manager guides Agents through structured workflows for systematic pr
 - **Task Memory Function**: Automatically backup task history, providing long-term memory and reference capabilities
 - **Research Mode**: Systematic technical research capabilities with guided workflows for exploring technologies, best practices, and solution comparisons
 - **Project Rules Initialization**: Define project standards and rules to maintain consistency across large projects
-- **<a id="web-gui"></a>Web GUI**: Provides an optional web-based graphical user interface for task management. Enable by setting `ENABLE_GUI=true` in your `.env` file. When enabled, a `WebGUI.md` file containing the access address will be created in your `DATA_DIR`.
+- **<a id="web-gui"></a>Web GUI**: Provides an optional web-based graphical user interface for task management. Enable by setting `ENABLE_GUI=true` in your `.env` file. When enabled, a `WebGUI.md` file containing the access address will be created in your `DATA_DIR`. You can customize the web port by setting `WEB_PORT` (if not specified, an available port will be automatically selected).
 
 ## 🧭 <a id="usage-guide"></a>Usage Guide
 
@@ -215,52 +215,25 @@ Shrimp Task Manager can be used with any client that supports the Model Context 
 
 Shrimp Task Manager offers two configuration methods: global configuration and project-specific configuration.
 
+#### ListRoots Protocol Support
+
+Shrimp Task Manager now supports the **ListRoots protocol**, which enables automatic project isolation and flexible path configuration:
+
+- **If your client supports ListRoots** (e.g., Cursor IDE):
+
+  - **Absolute path mode**: Create a project folder within the specified DATA_DIR, enabling you to use a global mcp.json configuration while Shrimp automatically isolates projects
+  - **Relative path mode**: Create the DATA_DIR within your project root directory for project-specific data storage
+
+- **If your client doesn't support ListRoots**:
+  - DATA_DIR maintains the legacy behavior (absolute paths recommended)
+  - We recommend asking your client vendor to support the ListRoots protocol for enhanced functionality
+
 #### Global Configuration
 
 1. Open the Cursor IDE global configuration file (usually located at `~/.cursor/mcp.json`)
 2. Add the following configuration in the `mcpServers` section:
 
-```json
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "node",
-      "args": ["/mcp-shrimp-task-manager/dist/index.js"],
-      "env": {
-        "DATA_DIR": "/path/to/project/data", // 必須使用絕對路徑
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-
-
-or
-
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "npx",
-      "args": ["-y", "mcp-shrimp-task-manager"],
-      "env": {
-        "DATA_DIR": "/mcp-shrimp-task-manager/data",
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-```
-
-> ⚠️ Please replace `/mcp-shrimp-task-manager` with your actual path.
-
-#### Project-Specific Configuration
-
-You can also set up dedicated configurations for each project to use independent data directories for different projects:
-
-1. Create a `.cursor` directory in the project root
-2. Create an `mcp.json` file in this directory with the following content:
+**Option A: Absolute Path (Project Isolation Mode)**
 
 ```json
 {
@@ -269,24 +242,7 @@ You can also set up dedicated configurations for each project to use independent
       "command": "node",
       "args": ["/path/to/mcp-shrimp-task-manager/dist/index.js"],
       "env": {
-        "DATA_DIR": "/path/to/project/data", // Must use absolute path
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-
-
-or
-
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "npx",
-      "args": ["-y", "mcp-shrimp-task-manager"],
-      "env": {
-        "DATA_DIR": "/path/to/project/data", // Must use absolute path
+        "DATA_DIR": "/Users/username/ShrimpData", // Absolute path - creates project folders automatically
         "TEMPLATES_USE": "en",
         "ENABLE_GUI": "false"
       }
@@ -295,16 +251,152 @@ or
 }
 ```
 
+**Option B: NPX with Absolute Path**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "/Users/username/ShrimpData", // Absolute path - creates project folders automatically
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ Please replace `/path/to/mcp-shrimp-task-manager` and `/Users/username/ShrimpData` with your actual paths.
+>
+> 💡 **Absolute Path Advantage**: With ListRoots support, Shrimp automatically creates separate folders for each project (e.g., `/Users/username/ShrimpData/my-project/`, `/Users/username/ShrimpData/another-project/`), enabling perfect project isolation with a single global configuration.
+>
+> 💡 **Optional:** You can add `"WEB_PORT": "3000"` to the `env` section to specify a custom port for the web GUI. If not specified, an available port will be automatically selected.
+
+#### Project-Specific Configuration
+
+You can also set up dedicated configurations for each project. This method allows using relative paths for project-contained data storage:
+
+1. Create a `.cursor` directory in the project root
+2. Create an `mcp.json` file in this directory with the following content:
+
+**Option A: Relative Path (Project-Contained Mode)**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "node",
+      "args": ["/path/to/mcp-shrimp-task-manager/dist/index.js"],
+      "env": {
+        "DATA_DIR": ".shrimp", // Relative path - creates folder within project root
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+**Option B: NPX with Relative Path**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "shrimp-data", // Relative path - creates folder within project root
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+**Option C: Absolute Path (Alternative)**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "/Users/username/ShrimpData", // Absolute path with project isolation
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ Please replace `/path/to/mcp-shrimp-task-manager` with your actual path.
+>
+> 💡 **Relative Path Advantage**: Data is stored within your project directory (e.g., `./shrimp-data/`), making it easy to include or exclude from version control as needed.
+>
+> 💡 **Optional:** You can add `"WEB_PORT": "3000"` to the `env` section to specify a custom port for the web GUI. If not specified, an available port will be automatically selected.
+
 ### ⚠️ Important Configuration Notes
 
-The **DATA_DIR parameter** is the directory where Shrimp Task Manager stores task data, conversation logs, and other information. Setting this parameter correctly is crucial for the normal operation of the system. This parameter must use an **absolute path**; using a relative path may cause the system to incorrectly locate the data directory, resulting in data loss or function failure.
+The **DATA_DIR parameter** is the directory where Shrimp Task Manager stores task data, conversation logs, and other information. The new implementation supports both absolute and relative paths with intelligent behavior based on your client's capabilities.
 
-> **Warning**: Using relative paths may cause the following issues:
+#### 🚀 With ListRoots Protocol Support (Recommended)
+
+If your client supports the **ListRoots protocol** (like Cursor IDE), Shrimp Task Manager automatically detects your project root and provides enhanced functionality:
+
+**Absolute Path Mode (Project Isolation):**
+
+- Configuration: `"DATA_DIR": "/Users/username/ShrimpData"`
+- Behavior: Creates `{DATA_DIR}/{project-name}/` automatically
+- Example: For project "my-app" → `/Users/username/ShrimpData/my-app/`
+- **Advantage**: Use one global configuration for all projects with perfect isolation
+
+**Relative Path Mode (Project-Contained):**
+
+- Configuration: `"DATA_DIR": ".shrimp"` or `"DATA_DIR": "shrimp-data"`
+- Behavior: Creates `{project-root}/{DATA_DIR}/` within your project
+- Example: For DATA_DIR "shrimp-data" → `./shrimp-data/`
+- **Advantage**: Data stays with your project, easy to include/exclude from version control
+
+#### ⚠️ Without ListRoots Protocol Support (Legacy Mode)
+
+If your client **doesn't support ListRoots**, the system falls back to legacy behavior:
+
+- **Absolute paths are strongly recommended** to avoid path resolution issues
+- Relative paths may cause inconsistent behavior across different environments
+- Consider requesting ListRoots support from your client vendor for enhanced functionality
+
+> **Legacy Warning**: Without ListRoots support, using relative paths may cause:
 >
 > - Data files not found, causing system initialization failure
 > - Task status loss or inability to save correctly
 > - Inconsistent application behavior across different environments
 > - System crashes or failure to start
+
+#### 💡 Choosing the Right Configuration
+
+**Use Absolute Path (Global) when:**
+
+- You want to manage multiple projects with one configuration
+- You prefer centralized data storage
+- You want automatic project isolation
+
+**Use Relative Path (Project-Specific) when:**
+
+- You want data to stay within the project directory
+- You work on projects in different environments
+- You need fine control over what gets included in version control
+
+**Use Legacy Mode when:**
+
+- Your client doesn't support ListRoots protocol
+- You need compatibility with older client versions
 
 ### 🔧 Environment Variable Configuration
 
@@ -336,7 +428,9 @@ There are two customization methods:
 Additionally, there are other system configuration variables:
 
 - **DATA_DIR**: Specifies the directory where task data is stored
-- **TEMPLATES_USE**: Specifies the template set to use for prompts. Defaults to `en`. Currently available options are `en` and `zh`. To use custom templates, copy the `src/prompts/templates_en` directory to the location specified by `DATA_DIR`, rename the copied directory (e.g., to `my_templates`), and set `TEMPLATES_USE` to the new directory name (e.g., `my_templates`).
+- **TEMPLATES_USE**: Specifies the template set to use for prompts. Defaults to `en`. Currently available options are `en` and `zh`. To use custom templates, copy the `src/prompts/templates_en` directory to the location specified by `DATA_DIR`, rename the copied directory (e.g., to `my_templates`), and set `TEMPLATES_USE` to the new directory name (e.g., `my_templates`)
+- **ENABLE_GUI**: Enables or disables the web-based graphical user interface. Set to `true` to enable, `false` to disable (default)
+- **WEB_PORT**: Specifies the port for the web GUI. If not specified, an available port will be automatically selected. Only takes effect when `ENABLE_GUI` is set to `true`
 
 For detailed instructions on customizing prompts, including supported parameters and examples, see the [Prompt Customization Guide](docs/en/prompt-customization.md).
 

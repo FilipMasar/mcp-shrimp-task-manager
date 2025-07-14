@@ -17,14 +17,16 @@ export interface GetTaskDetailPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getGetTaskDetailPrompt(
+export async function getGetTaskDetailPrompt(
   params: GetTaskDetailPromptParams
-): string {
+): Promise<string> {
   const { taskId, task, error } = params;
 
   // If there is an error, display the error message
   if (error) {
-    const errorTemplate = loadPromptFromTemplate("getTaskDetail/error.md");
+    const errorTemplate = await loadPromptFromTemplate(
+      "getTaskDetail/error.md"
+    );
     return generatePrompt(errorTemplate, {
       errorMessage: error,
     });
@@ -32,7 +34,7 @@ export function getGetTaskDetailPrompt(
 
   // If the task is not found, display the message indicating the task is not found
   if (!task) {
-    const notFoundTemplate = loadPromptFromTemplate(
+    const notFoundTemplate = await loadPromptFromTemplate(
       "getTaskDetail/notFound.md"
     );
     return generatePrompt(notFoundTemplate, {
@@ -42,7 +44,9 @@ export function getGetTaskDetailPrompt(
 
   let notesPrompt = "";
   if (task.notes) {
-    const notesTemplate = loadPromptFromTemplate("getTaskDetail/notes.md");
+    const notesTemplate = await loadPromptFromTemplate(
+      "getTaskDetail/notes.md"
+    );
     notesPrompt = generatePrompt(notesTemplate, {
       notes: task.notes,
     });
@@ -50,7 +54,7 @@ export function getGetTaskDetailPrompt(
 
   let dependenciesPrompt = "";
   if (task.dependencies && task.dependencies.length > 0) {
-    const dependenciesTemplate = loadPromptFromTemplate(
+    const dependenciesTemplate = await loadPromptFromTemplate(
       "getTaskDetail/dependencies.md"
     );
     dependenciesPrompt = generatePrompt(dependenciesTemplate, {
@@ -62,7 +66,7 @@ export function getGetTaskDetailPrompt(
 
   let implementationGuidePrompt = "";
   if (task.implementationGuide) {
-    const implementationGuideTemplate = loadPromptFromTemplate(
+    const implementationGuideTemplate = await loadPromptFromTemplate(
       "getTaskDetail/implementationGuide.md"
     );
     implementationGuidePrompt = generatePrompt(implementationGuideTemplate, {
@@ -72,7 +76,7 @@ export function getGetTaskDetailPrompt(
 
   let verificationCriteriaPrompt = "";
   if (task.verificationCriteria) {
-    const verificationCriteriaTemplate = loadPromptFromTemplate(
+    const verificationCriteriaTemplate = await loadPromptFromTemplate(
       "getTaskDetail/verificationCriteria.md"
     );
     verificationCriteriaPrompt = generatePrompt(verificationCriteriaTemplate, {
@@ -82,7 +86,7 @@ export function getGetTaskDetailPrompt(
 
   let relatedFilesPrompt = "";
   if (task.relatedFiles && task.relatedFiles.length > 0) {
-    const relatedFilesTemplate = loadPromptFromTemplate(
+    const relatedFilesTemplate = await loadPromptFromTemplate(
       "getTaskDetail/relatedFiles.md"
     );
     relatedFilesPrompt = generatePrompt(relatedFilesTemplate, {
@@ -99,7 +103,7 @@ export function getGetTaskDetailPrompt(
 
   let complatedSummaryPrompt = "";
   if (task.completedAt) {
-    const complatedSummaryTemplate = loadPromptFromTemplate(
+    const complatedSummaryTemplate = await loadPromptFromTemplate(
       "getTaskDetail/complatedSummary.md"
     );
     complatedSummaryPrompt = generatePrompt(complatedSummaryTemplate, {
@@ -108,7 +112,7 @@ export function getGetTaskDetailPrompt(
     });
   }
 
-  const indexTemplate = loadPromptFromTemplate("getTaskDetail/index.md");
+  const indexTemplate = await loadPromptFromTemplate("getTaskDetail/index.md");
 
   // Start building the basic prompt
   let prompt = generatePrompt(indexTemplate, {

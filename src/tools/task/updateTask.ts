@@ -80,7 +80,7 @@ export async function updateTaskContent({
           content: [
             {
               type: "text" as const,
-              text: getUpdateTaskContentPrompt({
+              text: await getUpdateTaskContentPrompt({
                 taskId,
                 validationError:
                   "Invalid line number setting: both lineStart and lineEnd must be set, and lineStart must be less than lineEnd",
@@ -107,7 +107,7 @@ export async function updateTaskContent({
       content: [
         {
           type: "text" as const,
-          text: getUpdateTaskContentPrompt({
+          text: await getUpdateTaskContentPrompt({
             taskId,
             emptyUpdate: true,
           }),
@@ -124,7 +124,7 @@ export async function updateTaskContent({
       content: [
         {
           type: "text" as const,
-          text: getUpdateTaskContentPrompt({
+          text: await getUpdateTaskContentPrompt({
             taskId,
           }),
         },
@@ -160,7 +160,7 @@ export async function updateTaskContent({
     content: [
       {
         type: "text" as const,
-        text: getUpdateTaskContentPrompt({
+        text: await getUpdateTaskContentPrompt({
           taskId,
           task,
           success: result.success,

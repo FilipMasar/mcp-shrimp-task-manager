@@ -37,7 +37,7 @@ export async function getTaskDetail({
     const task = result.tasks[0];
 
     // Use prompt generator to get the final prompt
-    const prompt = getGetTaskDetailPrompt({
+    const prompt = await getGetTaskDetailPrompt({
       taskId,
       task,
     });
@@ -52,7 +52,7 @@ export async function getTaskDetail({
     };
   } catch (error) {
     // Use prompt generator to get error message
-    const errorPrompt = getGetTaskDetailPrompt({
+    const errorPrompt = await getGetTaskDetailPrompt({
       taskId,
       error: error instanceof Error ? error.message : String(error),
     });

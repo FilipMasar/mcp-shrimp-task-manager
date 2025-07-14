@@ -4,12 +4,14 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequest, CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import express, { Request, Response } from "express";
-import getPort from "get-port";
-import path from "path";
-import fs from "fs";
-import fsPromises from "fs/promises";
-import { fileURLToPath } from "url";
+import {
+  CallToolRequest,
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  InitializedNotificationSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { setGlobalServer } from "./utils/paths.js";
+import { createWebServer } from "./web/webServer.js";
 
 // Import all tool functions and schemas
 import {
@@ -50,131 +52,8 @@ import {
 async function main() {
   try {
     const ENABLE_GUI = process.env.ENABLE_GUI === "true";
-
-    if (ENABLE_GUI) {
-      // Create Express application
-      const app = express();
-
-      // Store list of SSE clients
-      let sseClients: Response[] = [];
-
-      // Helper function to send SSE events
-      function sendSseUpdate() {
-        sseClients.forEach((client) => {
-          // Check if client is still connected
-          if (!client.writableEnded) {
-            client.write(
-              `event: update\ndata: ${JSON.stringify({
-                timestamp: Date.now(),
-              })}\n\n`
-            );
-          }
-        });
-        // Clean up disconnected clients (optional but recommended)
-        sseClients = sseClients.filter((client) => !client.writableEnded);
-      }
-
-      // Set static file directory
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const publicPath = path.join(__dirname, "public");
-      const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
-      const TASKS_FILE_PATH = path.join(DATA_DIR, "tasks.json"); // Extract file path
-
-      app.use(express.static(publicPath));
-
-      // Set API routes
-      app.get("/api/tasks", async (req: Request, res: Response) => {
-        try {
-          // Use fsPromises for asynchronous reading
-          const tasksData = await fsPromises.readFile(TASKS_FILE_PATH, "utf-8");
-          res.json(JSON.parse(tasksData));
-        } catch (error) {
-          // Ensure an empty task list is returned if the file does not exist
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            res.json({ tasks: [] });
-          } else {
-            res.status(500).json({ error: "Failed to read tasks data" });
-          }
-        }
-      });
-
-      // New: SSE endpoint
-      app.get("/api/tasks/stream", (req: Request, res: Response) => {
-        res.writeHead(200, {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-          // Optional: CORS headers if frontend and backend are not on the same origin
-          // "Access-Control-Allow-Origin": "*",
-        });
-
-        // Send an initial event or keep the connection
-        res.write("data: connected\n\n");
-
-        // Add client to the list
-        sseClients.push(res);
-
-        // Remove client from the list when it disconnects
-        req.on("close", () => {
-          sseClients = sseClients.filter((client) => client !== res);
-        });
-      });
-
-      // Get available port
-      const port = await getPort();
-
-      // Start HTTP server
-      const httpServer = app.listen(port, () => {
-        // Check if the file exists, do not watch if it doesn't (avoid watch errors)
-        try {
-          if (fs.existsSync(TASKS_FILE_PATH)) {
-            fs.watch(TASKS_FILE_PATH, (eventType, filename) => {
-              if (
-                filename &&
-                (eventType === "change" || eventType === "rename")
-              ) {
-                // Slightly delay sending to prevent multiple triggers in a short time (e.g., editor save)
-                // debounce sendSseUpdate if needed
-                sendSseUpdate();
-              }
-            });
-          }
-        } catch (watchError) {}
-      });
-
-
-      // write the URL to WebGUI.md
-      try {
-        // read the TEMPLATES_USE environment variable and convert it to language code
-        const templatesUse = process.env.TEMPLATES_USE || "en";
-        const getLanguageFromTemplate = (template: string): string => {
-          if (template === "zh") return "zh-TW";
-          if (template === "en") return "en";
-          // default to English
-          return "en";
-        };
-        const language = getLanguageFromTemplate(templatesUse);
-
-        const websiteUrl = `[Task Manager UI](http://localhost:${port}?lang=${language})`;
-        const websiteFilePath = path.join(DATA_DIR, "WebGUI.md");
-        await fsPromises.writeFile(websiteFilePath, websiteUrl, "utf-8");
-      } catch (error) {}
-
-      // Set process termination event handling (ensure watcher removal)
-      const shutdownHandler = async () => {
-        // Close all SSE connections
-        sseClients.forEach((client) => client.end());
-        sseClients = [];
-
-        // Close HTTP server
-        await new Promise<void>((resolve) => httpServer.close(() => resolve()));
-        process.exit(0);
-      };
-
-      process.on("SIGINT", shutdownHandler);
-      process.on("SIGTERM", shutdownHandler);
-    }
+    let webServerInstance: Awaited<ReturnType<typeof createWebServer>> | null =
+      null;
 
     const server = new Server(
       {
@@ -184,112 +63,128 @@ async function main() {
       {
         capabilities: {
           tools: {},
+          logging: {},
         },
       }
     );
+
+    // 設置全局 server 實例
+    setGlobalServer(server);
+
+    // 監聽 initialized 通知來啟動 web 服務器
+    if (ENABLE_GUI) {
+      server.setNotificationHandler(InitializedNotificationSchema, async () => {
+        try {
+          webServerInstance = await createWebServer();
+          await webServerInstance.startServer();
+        } catch (error) {}
+      });
+    }
 
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: [
           {
             name: "plan_task",
-            description: loadPromptFromTemplate("toolsDescription/planTask.md"),
+            description: await loadPromptFromTemplate(
+              "toolsDescription/planTask.md"
+            ),
             inputSchema: zodToJsonSchema(planTaskSchema),
           },
           {
             name: "analyze_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/analyzeTask.md"
             ),
             inputSchema: zodToJsonSchema(analyzeTaskSchema),
           },
           {
             name: "reflect_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/reflectTask.md"
             ),
             inputSchema: zodToJsonSchema(reflectTaskSchema),
           },
           {
             name: "split_tasks",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/splitTasks.md"
             ),
             inputSchema: zodToJsonSchema(splitTasksRawSchema),
           },
           {
             name: "list_tasks",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/listTasks.md"
             ),
             inputSchema: zodToJsonSchema(listTasksSchema),
           },
           {
             name: "execute_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/executeTask.md"
             ),
             inputSchema: zodToJsonSchema(executeTaskSchema),
           },
           {
             name: "verify_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/verifyTask.md"
             ),
             inputSchema: zodToJsonSchema(verifyTaskSchema),
           },
           {
             name: "delete_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/deleteTask.md"
             ),
             inputSchema: zodToJsonSchema(deleteTaskSchema),
           },
           {
             name: "clear_all_tasks",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/clearAllTasks.md"
             ),
             inputSchema: zodToJsonSchema(clearAllTasksSchema),
           },
           {
             name: "update_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/updateTask.md"
             ),
             inputSchema: zodToJsonSchema(updateTaskContentSchema),
           },
           {
             name: "query_task",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/queryTask.md"
             ),
             inputSchema: zodToJsonSchema(queryTaskSchema),
           },
           {
             name: "get_task_detail",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/getTaskDetail.md"
             ),
             inputSchema: zodToJsonSchema(getTaskDetailSchema),
           },
           {
             name: "process_thought",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/processThought.md"
             ),
             inputSchema: zodToJsonSchema(processThoughtSchema),
           },
           {
             name: "init_project_rules",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/initProjectRules.md"
             ),
             inputSchema: zodToJsonSchema(initProjectRulesSchema),
           },
           {
             name: "research_mode",
-            description: loadPromptFromTemplate(
+            description: await loadPromptFromTemplate(
               "toolsDescription/researchMode.md"
             ),
             inputSchema: zodToJsonSchema(researchModeSchema),

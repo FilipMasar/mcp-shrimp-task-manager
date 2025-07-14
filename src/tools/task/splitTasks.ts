@@ -209,7 +209,7 @@ export async function splitTasks({
     }
 
     // Use prompt generator to get the final prompt
-    const prompt = getSplitTasksPrompt({
+    const prompt = await getSplitTasksPrompt({
       updateMode,
       createdTasks,
       allTasks,

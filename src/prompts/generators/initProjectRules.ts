@@ -14,10 +14,12 @@ export interface InitProjectRulesPromptParams {
  * @param params prompt parameters (optional)
  * @returns Generated prompt
  */
-export function getInitProjectRulesPrompt(
+export async function getInitProjectRulesPrompt(
   params?: InitProjectRulesPromptParams
-): string {
-  const indexTemplate = loadPromptFromTemplate("initProjectRules/index.md");
+): Promise<string> {
+  const indexTemplate = await loadPromptFromTemplate(
+    "initProjectRules/index.md"
+  );
 
   // Load possible custom prompts (via environment variable override or addition)
   return loadPrompt(indexTemplate, "INIT_PROJECT_RULES");

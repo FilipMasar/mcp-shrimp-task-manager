@@ -18,13 +18,13 @@ export interface ResearchModePromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getResearchModePrompt(
+export async function getResearchModePrompt(
   params: ResearchModePromptParams
-): string {
+): Promise<string> {
   // Handle previous research state
   let previousStateContent = "";
   if (params.previousState && params.previousState.trim() !== "") {
-    const previousStateTemplate = loadPromptFromTemplate(
+    const previousStateTemplate = await loadPromptFromTemplate(
       "researchMode/previousState.md"
     );
     previousStateContent = generatePrompt(previousStateTemplate, {
@@ -35,7 +35,7 @@ export function getResearchModePrompt(
   }
 
   // Load main template
-  const indexTemplate = loadPromptFromTemplate("researchMode/index.md");
+  const indexTemplate = await loadPromptFromTemplate("researchMode/index.md");
   let prompt = generatePrompt(indexTemplate, {
     topic: params.topic,
     previousStateContent: previousStateContent,

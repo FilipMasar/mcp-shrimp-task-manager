@@ -25,7 +25,7 @@ export async function clearAllTasks({
       content: [
         {
           type: "text" as const,
-          text: getClearAllTasksPrompt({ confirm: false }),
+          text: await getClearAllTasksPrompt({ confirm: false }),
         },
       ],
     };
@@ -38,7 +38,7 @@ export async function clearAllTasks({
       content: [
         {
           type: "text" as const,
-          text: getClearAllTasksPrompt({ isEmpty: true }),
+          text: await getClearAllTasksPrompt({ isEmpty: true }),
         },
       ],
     };
@@ -51,7 +51,7 @@ export async function clearAllTasks({
     content: [
       {
         type: "text" as const,
-        text: getClearAllTasksPrompt({
+        text: await getClearAllTasksPrompt({
           success: result.success,
           message: result.message,
           backupFile: result.backupFile,

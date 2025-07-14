@@ -112,7 +112,7 @@ export async function executeTask({
     let relatedFilesSummary = "";
     if (task.relatedFiles && task.relatedFiles.length > 0) {
       try {
-        const relatedFilesResult = await loadTaskRelatedFiles(
+        const relatedFilesResult = await  (
           task.relatedFiles
         );
         relatedFilesSummary =
@@ -126,7 +126,7 @@ export async function executeTask({
     }
 
     // Use prompt generator to get the final prompt
-    const prompt = getExecuteTaskPrompt({
+    const prompt = await getExecuteTaskPrompt({
       task,
       complexityAssessment,
       relatedFilesSummary,

@@ -17,8 +17,10 @@ export interface SplitTasksPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getSplitTasksPrompt(params: SplitTasksPromptParams): string {
-  const taskDetailsTemplate = loadPromptFromTemplate(
+export async function getSplitTasksPrompt(
+  params: SplitTasksPromptParams
+): Promise<string> {
+  const taskDetailsTemplate = await loadPromptFromTemplate(
     "splitTasks/taskDetails.md"
   );
 
@@ -65,7 +67,7 @@ export function getSplitTasksPrompt(params: SplitTasksPromptParams): string {
     })
     .join("\n");
 
-  const indexTemplate = loadPromptFromTemplate("splitTasks/index.md");
+  const indexTemplate = await loadPromptFromTemplate("splitTasks/index.md");
   const prompt = generatePrompt(indexTemplate, {
     updateMode: params.updateMode,
     tasksContent,

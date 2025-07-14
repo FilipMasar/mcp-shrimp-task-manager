@@ -1,6 +1,8 @@
 import { z } from "zod";
 import path from "path";
 import { getResearchModePrompt } from "../../prompts/index.js";
+import { getMemoryDir } from "../../utils/paths.js";
+import { fileURLToPath } from "url";
 
 // researchMode tool
 export const researchModeSchema = z.object({
@@ -36,12 +38,13 @@ export async function researchMode({
   nextSteps,
 }: z.infer<typeof researchModeSchema>) {
   // Get base directory path
-  const DATA_DIR = process.env.DATA_DIR
-  if (!DATA_DIR) throw new Error("DATA_DIR is not set");
-  const MEMORY_DIR = path.join(DATA_DIR, "memory");
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const PROJECT_ROOT = path.resolve(__dirname, "../../..");
+  const MEMORY_DIR = await getMemoryDir();
 
   // Use prompt generator to get the final prompt
-  const prompt = getResearchModePrompt({
+  const prompt = await getResearchModePrompt({
     topic,
     previousState,
     currentState,

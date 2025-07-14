@@ -17,12 +17,16 @@ export interface ListTasksPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getListTasksPrompt(params: ListTasksPromptParams): string {
+export async function getListTasksPrompt(
+  params: ListTasksPromptParams
+): Promise<string> {
   const { status, tasks, allTasks } = params;
 
   // If there are no tasks, display notification
   if (allTasks.length === 0) {
-    const notFoundTemplate = loadPromptFromTemplate("listTasks/notFound.md");
+    const notFoundTemplate = await loadPromptFromTemplate(
+      "listTasks/notFound.md"
+    );
     const statusText = status === "all" ? "any" : `any ${status} `;
     return generatePrompt(notFoundTemplate, {
       statusText: statusText,
@@ -51,7 +55,9 @@ export function getListTasksPrompt(params: ListTasksPromptParams): string {
   }
 
   let taskDetails = "";
-  let taskDetailsTemplate = loadPromptFromTemplate("listTasks/taskDetails.md");
+  let taskDetailsTemplate = await loadPromptFromTemplate(
+    "listTasks/taskDetails.md"
+  );
   // Add task details for each status
   for (const statusType of Object.values(TaskStatus)) {
     const tasksWithStatus = tasks[statusType] || [];
@@ -81,7 +87,7 @@ export function getListTasksPrompt(params: ListTasksPromptParams): string {
     }
   }
 
-  const indexTemplate = loadPromptFromTemplate("listTasks/index.md");
+  const indexTemplate = await loadPromptFromTemplate("listTasks/index.md");
   let prompt = generatePrompt(indexTemplate, {
     statusCount: statusCounts,
     taskDetailsTemplate: taskDetails,

@@ -70,7 +70,7 @@ export async function processThought(
     }
 
     // Format thought output
-    const formattedThought = getProcessThoughtPrompt(thoughtData);
+    const formattedThought = await getProcessThoughtPrompt(thoughtData);
 
     // Return success response
     return {

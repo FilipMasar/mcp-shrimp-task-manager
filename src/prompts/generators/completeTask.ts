@@ -16,12 +16,12 @@ export interface CompleteTaskPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getCompleteTaskPrompt(
+export async function getCompleteTaskPrompt(
   params: CompleteTaskPromptParams
-): string {
+): Promise<string> {
   const { task, completionTime } = params;
 
-  const indexTemplate = loadPromptFromTemplate("completeTask/index.md");
+  const indexTemplate = await loadPromptFromTemplate("completeTask/index.md");
 
   // Start building the basic prompt
   let prompt = generatePrompt(indexTemplate, {

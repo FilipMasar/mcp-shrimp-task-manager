@@ -11,7 +11,7 @@ export const initProjectRulesSchema = z.object({});
 export async function initProjectRules() {
   try {
     // Get prompt from generator
-    const promptContent = getInitProjectRulesPrompt();
+    const promptContent = await getInitProjectRulesPrompt();
 
     // Return success response
     return {

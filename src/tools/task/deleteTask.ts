@@ -25,7 +25,7 @@ export async function deleteTask({ taskId }: z.infer<typeof deleteTaskSchema>) {
       content: [
         {
           type: "text" as const,
-          text: getDeleteTaskPrompt({ taskId }),
+          text: await getDeleteTaskPrompt({ taskId }),
         },
       ],
       isError: true,
@@ -37,7 +37,11 @@ export async function deleteTask({ taskId }: z.infer<typeof deleteTaskSchema>) {
       content: [
         {
           type: "text" as const,
-          text: getDeleteTaskPrompt({ taskId, task, isTaskCompleted: true }),
+          text: await getDeleteTaskPrompt({
+            taskId,
+            task,
+            isTaskCompleted: true,
+          }),
         },
       ],
       isError: true,
@@ -50,7 +54,7 @@ export async function deleteTask({ taskId }: z.infer<typeof deleteTaskSchema>) {
     content: [
       {
         type: "text" as const,
-        text: getDeleteTaskPrompt({
+        text: await getDeleteTaskPrompt({
           taskId,
           task,
           success: result.success,

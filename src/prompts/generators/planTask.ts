@@ -20,7 +20,9 @@ export interface PlanTaskPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getPlanTaskPrompt(params: PlanTaskPromptParams): string {
+export async function getPlanTaskPrompt(
+  params: PlanTaskPromptParams
+): Promise<string> {
   let tasksContent = "";
   if (
     params.existingTasksReference &&
@@ -94,7 +96,7 @@ export function getPlanTaskPrompt(params: PlanTaskPromptParams): string {
         });
       }
 
-      const tasksTemplate = loadPromptFromTemplate("planTask/tasks.md");
+      const tasksTemplate = await loadPromptFromTemplate("planTask/tasks.md");
       tasksContent = generatePrompt(tasksTemplate, {
         completedTasks: completeTasksContent,
         unfinishedTasks: unfinishedTasksContent,
@@ -104,11 +106,11 @@ export function getPlanTaskPrompt(params: PlanTaskPromptParams): string {
 
   let thoughtTemplate = "";
   if (process.env.ENABLE_THOUGHT_CHAIN !== "false") {
-    thoughtTemplate = loadPromptFromTemplate("planTask/hasThought.md");
+    thoughtTemplate = await loadPromptFromTemplate("planTask/hasThought.md");
   } else {
-    thoughtTemplate = loadPromptFromTemplate("planTask/noThought.md");
+    thoughtTemplate = await loadPromptFromTemplate("planTask/noThought.md");
   }
-  const indexTemplate = loadPromptFromTemplate("planTask/index.md");
+  const indexTemplate = await loadPromptFromTemplate("planTask/index.md");
   let prompt = generatePrompt(indexTemplate, {
     description: params.description,
     requirements: params.requirements || "No requirements",

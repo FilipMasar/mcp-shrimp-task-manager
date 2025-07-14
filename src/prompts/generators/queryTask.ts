@@ -21,17 +21,21 @@ export interface QueryTaskPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getQueryTaskPrompt(params: QueryTaskPromptParams): string {
+export async function getQueryTaskPrompt(
+  params: QueryTaskPromptParams
+): Promise<string> {
   const { query, isId, tasks, totalTasks, page, pageSize, totalPages } = params;
 
   if (tasks.length === 0) {
-    const notFoundTemplate = loadPromptFromTemplate("queryTask/notFound.md");
+    const notFoundTemplate = await loadPromptFromTemplate(
+      "queryTask/notFound.md"
+    );
     return generatePrompt(notFoundTemplate, {
       query,
     });
   }
 
-  const taskDetailsTemplate = loadPromptFromTemplate(
+  const taskDetailsTemplate = await loadPromptFromTemplate(
     "queryTask/taskDetails.md"
   );
   let tasksContent = "";
@@ -48,7 +52,7 @@ export function getQueryTaskPrompt(params: QueryTaskPromptParams): string {
     });
   }
 
-  const indexTemplate = loadPromptFromTemplate("queryTask/index.md");
+  const indexTemplate = await loadPromptFromTemplate("queryTask/index.md");
   const prompt = generatePrompt(indexTemplate, {
     tasksContent,
     page,

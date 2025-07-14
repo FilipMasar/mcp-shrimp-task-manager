@@ -24,7 +24,7 @@ export async function reflectTask({
   analysis,
 }: z.infer<typeof reflectTaskSchema>) {
   // Use prompt generator to get the final prompt
-  const prompt = getReflectTaskPrompt({
+  const prompt = await getReflectTaskPrompt({
     summary,
     analysis,
   });

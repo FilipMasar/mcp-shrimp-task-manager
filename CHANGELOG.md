@@ -2,6 +2,21 @@
 
 # Changelog
 
+## [1.0.21]
+
+### Added
+
+- Added support for ListRoots protocol and optimized DATA_DIR configuration method (99baa0f)
+- Added WEB_PORT environment variable to customize WebGUI port number (8771a5b)
+
+### Changed
+
+- Updated documentation to reflect new configuration options (99baa0f, 8771a5b)
+
+### Fixed
+
+- Fix #56: Added configurable WebGUI port to avoid port conflicts (8771a5b)
+
 ## [1.0.20]
 
 ### Added

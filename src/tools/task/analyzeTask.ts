@@ -31,8 +31,8 @@ export async function analyzeTask({
   initialConcept,
   previousAnalysis,
 }: z.infer<typeof analyzeTaskSchema>) {
-  // Get final prompt using prompt generator
-  const prompt = getAnalyzeTaskPrompt({
+  // Use prompt generator to get the final prompt
+  const prompt = await getAnalyzeTaskPrompt({
     summary,
     initialConcept,
     previousAnalysis,

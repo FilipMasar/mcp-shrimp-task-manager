@@ -39,7 +39,7 @@
 - **思維鏈過程**：通過步驟化的推理系統性地分析複雜問題
 - **研究模式**：系統性技術研究功能，提供引導式工作流程來探索技術、最佳實踐和解決方案比較
 - **專案規範初始化**：定義專案標準和規則，維持大型專案的一致性
-- **<a id="網頁圖形介面"></a>網頁圖形介面**：提供選用的網頁圖形化使用者介面來管理任務。透過在您的 `.env` 檔案中設定 `ENABLE_GUI=true` 來啟用。啟用後，將會在您的 `DATA_DIR` 中建立一個包含存取網址的 `WebGUI.md` 檔案。
+- **<a id="網頁圖形介面"></a>網頁圖形介面**：提供選用的網頁圖形化使用者介面來管理任務。透過在您的 `.env` 檔案中設定 `ENABLE_GUI=true` 來啟用。啟用後，將會在您的 `DATA_DIR` 中建立一個包含存取網址的 `WebGUI.md` 檔案。您可以透過設定 `WEB_PORT` 來自訂網頁埠號（若未指定，系統將自動選擇可用的埠號）。
 
 ## 🧭 <a id="使用指南"></a>使用指南
 
@@ -212,51 +212,25 @@ npm run build
 
 蝦米任務管理器提供兩種配置方式：全局配置和專案特定配置。
 
+#### ListRoots 協議支援
+
+蝦米任務管理器現在支援 **ListRoots 協議**，提供自動專案隔離和靈活的路徑配置功能：
+
+- **如果您的客戶端支援 ListRoots** (例如 Cursor IDE)：
+
+  - **絕對路徑模式**：在指定的 DATA_DIR 中建立專案資料夾，讓您可以使用全域 mcp.json 配置，Shrimp 會自動隔離專案
+  - **相對路徑模式**：在專案根目錄中建立 DATA_DIR 來存放 Shrimp 資料
+
+- **如果您的客戶端不支援 ListRoots**：
+  - DATA_DIR 保持舊版邏輯（建議使用絕對路徑）
+  - 建議向您的客戶端廠商要求支援 ListRoots 協議以獲得增強功能
+
 #### 全局配置
 
 1. 開啟 Cursor IDE 的全局設定檔案（通常位於 `~/.cursor/mcp.json`）
 2. 在 `mcpServers` 區段中添加以下配置：
 
-```json
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "node",
-      "args": ["/mcp-shrimp-task-manager/dist/index.js"],
-      "env": {
-        "DATA_DIR": "/mcp-shrimp-task-manager/data",
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-
-or
-
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "npx",
-      "args": ["-y", "mcp-shrimp-task-manager"],
-      "env": {
-        "DATA_DIR": "/mcp-shrimp-task-manager/data",
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-```
-
-> ⚠️ 請將 `/mcp-shrimp-task-manager` 替換為您的實際路徑。
-
-#### 專案特定配置
-
-您也可以為每個專案設定專屬配置，以便針對不同專案使用獨立的數據目錄：
-
-1. 在專案根目錄創建 `.cursor` 目錄
-2. 在該目錄下創建 `mcp.json` 文件，內容如下：
+**選項 A：絕對路徑（專案隔離模式）**
 
 ```json
 {
@@ -265,24 +239,8 @@ or
       "command": "node",
       "args": ["/path/to/mcp-shrimp-task-manager/dist/index.js"],
       "env": {
-        "DATA_DIR": "/path/to/project/data", // 必須使用絕對路徑
-        "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
-      }
-    }
-  }
-}
-
-or
-
-{
-  "mcpServers": {
-    "shrimp-task-manager": {
-      "command": "npx",
-      "args": ["-y", "mcp-shrimp-task-manager"],
-      "env": {
-        "DATA_DIR": "/path/to/project/data", // 必須使用絕對路徑
-        "TEMPLATES_USE": "en",
+        "DATA_DIR": "/Users/username/ShrimpData", // 絕對路徑 - 自動建立專案資料夾
+        "TEMPLATES_USE": "zh",
         "ENABLE_GUI": "false"
       }
     }
@@ -290,16 +248,152 @@ or
 }
 ```
 
+**選項 B：NPX 配合絕對路徑**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "/Users/username/ShrimpData", // 絕對路徑 - 自動建立專案資料夾
+        "TEMPLATES_USE": "zh",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ 請將 `/path/to/mcp-shrimp-task-manager` 和 `/Users/username/ShrimpData` 替換為您的實際路徑。
+>
+> 💡 **絕對路徑優勢**：透過 ListRoots 支援，Shrimp 會自動為每個專案建立獨立資料夾（例如 `/Users/username/ShrimpData/my-project/`、`/Users/username/ShrimpData/another-project/`），實現完美的專案隔離，只需要一個全域配置。
+>
+> 💡 **可選設定：** 您可以在 `env` 區段中添加 `"WEB_PORT": "3000"` 來指定網頁 GUI 的自訂埠號。若未指定，系統將自動選擇可用的埠號。
+
+#### 專案特定配置
+
+您也可以為每個專案設定專屬配置。此方法允許使用相對路徑進行專案內數據存放：
+
+1. 在專案根目錄創建 `.cursor` 目錄
+2. 在該目錄下創建 `mcp.json` 文件，內容如下：
+
+**選項 A：相對路徑（專案內存放模式）**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "node",
+      "args": ["/path/to/mcp-shrimp-task-manager/dist/index.js"],
+      "env": {
+        "DATA_DIR": ".shrimp", // 相對路徑 - 在專案根目錄建立資料夾
+        "TEMPLATES_USE": "zh",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+**選項 B：NPX 配合相對路徑**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "shrimp-data", // 相對路徑 - 在專案根目錄建立資料夾
+        "TEMPLATES_USE": "zh",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+**選項 C：絕對路徑（替代方案）**
+
+```json
+{
+  "mcpServers": {
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": ["-y", "mcp-shrimp-task-manager"],
+      "env": {
+        "DATA_DIR": "/Users/username/ShrimpData", // 絕對路徑配合專案隔離
+        "TEMPLATES_USE": "zh",
+        "ENABLE_GUI": "false"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ 請將 `/path/to/mcp-shrimp-task-manager` 替換為您的實際路徑。
+>
+> 💡 **相對路徑優勢**：資料存放在專案目錄內（例如 `./shrimp-data/`），方便根據需要選擇是否納入版本控制。
+>
+> 💡 **可選設定：** 您可以在 `env` 區段中添加 `"WEB_PORT": "3000"` 來指定網頁 GUI 的自訂埠號。若未指定，系統將自動選擇可用的埠號。
+
 ### ⚠️ 重要配置說明
 
-**DATA_DIR 參數**是蝦米任務管理器存儲任務數據、對話記錄等信息的目錄，正確設置此參數對於系統的正常運行至關重要。此參數必須使用**絕對路徑**，使用相對路徑可能導致系統無法正確定位數據目錄，造成數據丟失或功能失效。
+**DATA_DIR 參數**是蝦米任務管理器存儲任務數據、對話記錄等資訊的目錄。新的實作支援絕對路徑和相對路徑，並根據您的客戶端功能提供智慧化行為。
 
-> **警告**：使用相對路徑可能導致以下問題：
+#### 🚀 支援 ListRoots 協議（建議）
+
+如果您的客戶端支援 **ListRoots 協議**（如 Cursor IDE），蝦米任務管理器會自動偵測您的專案根目錄並提供增強功能：
+
+**絕對路徑模式（專案隔離）：**
+
+- 配置：`"DATA_DIR": "/Users/username/ShrimpData"`
+- 行為：自動建立 `{DATA_DIR}/{專案名稱}/`
+- 範例：對於專案 "my-app" → `/Users/username/ShrimpData/my-app/`
+- **優勢**：使用一個全域配置管理所有專案，完美隔離
+
+**相對路徑模式（專案內存放）：**
+
+- 配置：`"DATA_DIR": ".shrimp"` 或 `"DATA_DIR": "shrimp-data"`
+- 行為：在專案內建立 `{專案根目錄}/{DATA_DIR}/`
+- 範例：對於 DATA_DIR "shrimp-data" → `./shrimp-data/`
+- **優勢**：資料與專案一起存放，方便選擇是否納入版本控制
+
+#### ⚠️ 不支援 ListRoots 協議（舊版模式）
+
+如果您的客戶端**不支援 ListRoots**，系統會回退到舊版行為：
+
+- **強烈建議使用絕對路徑**以避免路徑解析問題
+- 相對路徑可能在不同環境下導致行為不一致
+- 建議向您的客戶端廠商要求 ListRoots 支援以獲得增強功能
+
+> **舊版警告**：沒有 ListRoots 支援時，使用相對路徑可能導致：
 >
 > - 數據檔案找不到，導致系統初始化失敗
 > - 任務狀態丟失或無法正確保存
 > - 應用程式在不同環境下行為不一致
 > - 系統崩潰或無法啟動
+
+#### 💡 選擇合適的配置
+
+**使用絕對路徑（全域）當：**
+
+- 您想用一個配置管理多個專案
+- 您偏好集中式資料存放
+- 您想要自動專案隔離
+
+**使用相對路徑（專案特定）當：**
+
+- 您想讓資料存放在專案目錄內
+- 您在不同環境中工作
+- 您需要精確控制版本控制的內容
+
+**使用舊版模式當：**
+
+- 您的客戶端不支援 ListRoots 協議
+- 您需要與較舊的客戶端版本相容
 
 ### 🔧 環境變數配置
 
@@ -331,7 +425,9 @@ or
 此外，還有其他系統配置變數：
 
 - **DATA_DIR**：指定任務數據存儲的目錄
-- **TEMPLATES_USE**：指定提示詞使用的模板集。預設為 `en`。目前可用的選項有 `en` 和 `zh`。若要使用自定義模板，請將 `src/prompts/templates_en` 目錄複製到 `DATA_DIR` 指定的位置，重新命名複製的目錄（例如，`my_templates`），並將 `TEMPLATES_USE` 設置為新的目錄名稱（例如，`my_templates`）。
+- **TEMPLATES_USE**：指定提示詞使用的模板集。預設為 `en`。目前可用的選項有 `en` 和 `zh`。若要使用自定義模板，請將 `src/prompts/templates_en` 目錄複製到 `DATA_DIR` 指定的位置，重新命名複製的目錄（例如，`my_templates`），並將 `TEMPLATES_USE` 設置為新的目錄名稱（例如，`my_templates`）
+- **ENABLE_GUI**：啟用或停用網頁圖形化使用者介面。設定為 `true` 以啟用，`false` 以停用（預設）
+- **WEB_PORT**：指定網頁 GUI 的埠號。若未指定，系統將自動選擇可用的埠號。僅在 `ENABLE_GUI` 設定為 `true` 時生效
 
 有關自定義提示詞的詳細說明，包括支援的參數和範例，請參閱[提示詞自定義指南](prompt-customization.md)。
 

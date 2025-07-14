@@ -54,7 +54,7 @@ export async function listTasks({ status }: z.infer<typeof listTasksSchema>) {
   }, {} as Record<string, typeof tasks>);
 
   // Use prompt generator to get the final prompt
-  const prompt = getListTasksPrompt({
+  const prompt = await getListTasksPrompt({
     status,
     tasks: tasksByStatus,
     allTasks: filteredTasks,

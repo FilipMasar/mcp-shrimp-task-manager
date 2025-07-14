@@ -6,6 +6,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getDataDir } from "../utils/paths.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,22 +80,22 @@ export function generatePrompt(
  * @returns Template content
  * @throws Error if the template file is not found
  */
-export function loadPromptFromTemplate(templatePath: string): string {
+export async function loadPromptFromTemplate(
+  templatePath: string
+): Promise<string> {
   const templateSetName = process.env.TEMPLATES_USE || "en";
-  const dataDir = process.env.DATA_DIR;
+  const dataDir = await getDataDir();
   const builtInTemplatesBaseDir = __dirname;
 
   let finalPath = "";
   const checkedPaths: string[] = []; // For more detailed error reporting
 
   // 1. Check custom path in DATA_DIR
-  if (dataDir) {
-    // path.resolve can handle the case where templateSetName is an absolute path
-    const customFilePath = path.resolve(dataDir, templateSetName, templatePath);
-    checkedPaths.push(`Custom: ${customFilePath}`);
-    if (fs.existsSync(customFilePath)) {
-      finalPath = customFilePath;
-    }
+  // path.resolve can handle the case where templateSetName is an absolute path
+  const customFilePath = path.resolve(dataDir, templateSetName, templatePath);
+  checkedPaths.push(`Custom: ${customFilePath}`);
+  if (fs.existsSync(customFilePath)) {
+    finalPath = customFilePath;
   }
 
   // 2. If custom path is not found, check specific built-in template directory

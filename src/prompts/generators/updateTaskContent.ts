@@ -21,9 +21,9 @@ export interface UpdateTaskContentPromptParams {
  * @param params prompt parameters
  * @returns generated prompt
  */
-export function getUpdateTaskContentPrompt(
+export async function getUpdateTaskContentPrompt(
   params: UpdateTaskContentPromptParams
-): string {
+): Promise<string> {
   const {
     taskId,
     task,
@@ -36,7 +36,7 @@ export function getUpdateTaskContentPrompt(
 
   // Handle the case where the task does not exist
   if (!task) {
-    const notFoundTemplate = loadPromptFromTemplate(
+    const notFoundTemplate = await loadPromptFromTemplate(
       "updateTaskContent/notFound.md"
     );
     return generatePrompt(notFoundTemplate, {
@@ -46,7 +46,7 @@ export function getUpdateTaskContentPrompt(
 
   // Handle the case where validation fails
   if (validationError) {
-    const validationTemplate = loadPromptFromTemplate(
+    const validationTemplate = await loadPromptFromTemplate(
       "updateTaskContent/validation.md"
     );
     return generatePrompt(validationTemplate, {
@@ -56,7 +56,7 @@ export function getUpdateTaskContentPrompt(
 
   // Handle the case where there is an empty update
   if (emptyUpdate) {
-    const emptyUpdateTemplate = loadPromptFromTemplate(
+    const emptyUpdateTemplate = await loadPromptFromTemplate(
       "updateTaskContent/emptyUpdate.md"
     );
     return generatePrompt(emptyUpdateTemplate, {});
@@ -68,14 +68,14 @@ export function getUpdateTaskContentPrompt(
 
   // Update successful and there is updated task details
   if (success && updatedTask) {
-    const successTemplate = loadPromptFromTemplate(
+    const successTemplate = await loadPromptFromTemplate(
       "updateTaskContent/success.md"
     );
 
     // Combine related file information
     let filesContent = "";
     if (updatedTask.relatedFiles && updatedTask.relatedFiles.length > 0) {
-      const fileDetailsTemplate = loadPromptFromTemplate(
+      const fileDetailsTemplate = await loadPromptFromTemplate(
         "updateTaskContent/fileDetails.md"
       );
 
@@ -123,7 +123,9 @@ export function getUpdateTaskContentPrompt(
     });
   }
 
-  const indexTemplate = loadPromptFromTemplate("updateTaskContent/index.md");
+  const indexTemplate = await loadPromptFromTemplate(
+    "updateTaskContent/index.md"
+  );
   const prompt = generatePrompt(indexTemplate, {
     responseTitle,
     message: content,
