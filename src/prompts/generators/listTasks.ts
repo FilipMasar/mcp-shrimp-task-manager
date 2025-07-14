@@ -3,7 +3,11 @@
  * Responsible for combining templates and parameters into the final prompt
  */
 
-import { loadPrompt, generatePrompt, loadPromptFromTemplate } from "../loader.js";
+import {
+  loadPrompt,
+  generatePrompt,
+  loadPromptFromTemplate,
+} from "../loader.js";
 import { Task, TaskStatus } from "../../types/index.js";
 
 export interface ListTasksPromptParams {
