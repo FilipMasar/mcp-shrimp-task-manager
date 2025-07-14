@@ -1,1 +1,4 @@
-export { initProjectRules, initProjectRulesSchema } from "./initProjectRules.js";
+export {
+  initProjectRules,
+  initProjectRulesSchema,
+} from "./initProjectRules.js";
