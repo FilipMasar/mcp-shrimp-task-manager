@@ -8,7 +8,6 @@ import {
 } from "../../models/taskModel.js";
 import { TaskStatus, Task } from "../../types/index.js";
 import { getExecuteTaskPrompt } from "../../prompts/index.js";
-import { loadTaskRelatedFiles } from "../../utils/fileLoader.js";
 
 // Execute task tool
 export const executeTaskSchema = z.object({
