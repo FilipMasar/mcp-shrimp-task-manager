@@ -10,29 +10,19 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-<<<<<<< HEAD
+import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
 import { UUID_V4_REGEX } from "../utils/regex.js";
-
-// Data file path
-const DATA_DIR = process.env.DATA_DIR as string;
-if (!DATA_DIR) throw new Error("DATA_DIR is not set");
-const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
-=======
-import { fileURLToPath } from "url";
-import { exec } from "child_process";
-import { promisify } from "util";
 import { getDataDir, getTasksFilePath, getMemoryDir } from "../utils/paths.js";
 
-// 確保獲取專案資料夾路徑
+// Ensure getting project folder path
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 
-// 數據文件路徑（改為異步獲取）
+// Data file path (changed to asynchronous acquisition)
 // const DATA_DIR = getDataDir();
 // const TASKS_FILE = getTasksFilePath();
->>>>>>> main
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -701,13 +691,8 @@ export async function clearAllTasks(): Promise<{
       .replace(/\..+/, "");
     const backupFileName = `tasks_memory_${timestamp}.json`;
 
-<<<<<<< HEAD
     // Ensure memory directory exists
-    const MEMORY_DIR = path.join(DATA_DIR, "memory");
-=======
-    // 確保 memory 目錄存在
     const MEMORY_DIR = await getMemoryDir();
->>>>>>> main
     try {
       await fs.access(MEMORY_DIR);
     } catch (error) {
@@ -760,13 +745,8 @@ export async function searchTasksWithCommand(
   const currentTasks = await readTasks();
   let memoryTasks: Task[] = [];
 
-<<<<<<< HEAD
   // Search for tasks in the memory folder
-  const MEMORY_DIR = path.join(DATA_DIR, "memory");
-=======
-  // 搜尋記憶資料夾中的任務
   const MEMORY_DIR = await getMemoryDir();
->>>>>>> main
 
   try {
     // Ensure the memory folder exists
