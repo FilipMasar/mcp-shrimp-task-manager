@@ -1,6 +1,6 @@
 /**
- * getTaskDetail prompt 生成器
- * 負責將模板和參數組合成最終的 prompt
+ * getTaskDetail prompt generator
+ * Responsible for combining templates and parameters into the final prompt
  */
 
 import {
@@ -10,9 +10,6 @@ import {
 } from "../loader.js";
 import { Task } from "../../types/index.js";
 
-/**
- * getTaskDetail prompt 參數介面
- */
 export interface GetTaskDetailPromptParams {
   taskId: string;
   task?: Task | null;
@@ -20,16 +17,16 @@ export interface GetTaskDetailPromptParams {
 }
 
 /**
- * 獲取 getTaskDetail 的完整 prompt
- * @param params prompt 參數
- * @returns 生成的 prompt
+ * Get the complete prompt for getTaskDetail
+ * @param params prompt parameters
+ * @returns generated prompt
  */
 export async function getGetTaskDetailPrompt(
   params: GetTaskDetailPromptParams
 ): Promise<string> {
   const { taskId, task, error } = params;
 
-  // 如果有錯誤，顯示錯誤訊息
+  // If there is an error, display the error message
   if (error) {
     const errorTemplate = await loadPromptFromTemplate(
       "getTaskDetail/error.md"
@@ -39,7 +36,7 @@ export async function getGetTaskDetailPrompt(
     });
   }
 
-  // 如果找不到任務，顯示找不到任務的訊息
+  // If the task is not found, display the message indicating the task is not found
   if (!task) {
     const notFoundTemplate = await loadPromptFromTemplate(
       "getTaskDetail/notFound.md"
@@ -115,13 +112,13 @@ export async function getGetTaskDetailPrompt(
     );
     complatedSummaryPrompt = generatePrompt(complatedSummaryTemplate, {
       completedTime: new Date(task.completedAt).toLocaleString("zh-TW"),
-      summary: task.summary || "*無完成摘要*",
+      summary: task.summary || "*No completed summary*",
     });
   }
 
   const indexTemplate = await loadPromptFromTemplate("getTaskDetail/index.md");
 
-  // 開始構建基本 prompt
+  // Start building the basic prompt
   let prompt = generatePrompt(indexTemplate, {
     name: task.name,
     id: task.id,
@@ -137,6 +134,6 @@ export async function getGetTaskDetailPrompt(
     complatedSummaryTemplate: complatedSummaryPrompt,
   });
 
-  // 載入可能的自定義 prompt
+  // Load possible custom prompts
   return loadPrompt(prompt, "GET_TASK_DETAIL");
 }

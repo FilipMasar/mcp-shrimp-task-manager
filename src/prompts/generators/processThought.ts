@@ -1,3 +1,8 @@
+/**
+ * processThought prompt generator
+ * Responsible for combining templates and parameters into the final prompt
+ */
+
 import {
   loadPrompt,
   generatePrompt,
